@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>漂移时钟校时 · 可追溯时间轴控制台</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">⏱</span>
+    <div>
+      <h1>漂移时钟校时 · 可追溯时间轴</h1>
+      <p class="sub">两台设备模拟器 · 迟到校时 · 版本化发布 · 到达顺序不等于真实先后</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <label class="scenario-picker">场景
+      <select id="scenarioSelect"></select>
+    </label>
+    <button id="resetBtn" class="btn warn">重置系统</button>
+    <span id="serverClock" class="server-clock"></span>
+  </div>
+</header>
+
+<main>
+  <!-- 设备区 -->
+  <section class="panel">
+    <h2>① 设备模拟器（漂移率可在线调整，重启复用序号）</h2>
+    <div id="deviceCards" class="device-grid"></div>
+  </section>
+
+  <!-- 校时区 -->
+  <section class="panel">
+    <h2>② 校时记录（可即时校时，也可补一条迟到的历史校时）</h2>
+    <div class="cal-form">
+      <label>设备 <select id="calDevice"></select></label>
+      <label>启动代 boot_epoch
+        <select id="calBoot"><option value="">当前 boot</option></select>
+      </label>
+      <label>设备时钟读数(ms，留空=当前读数)
+        <input id="calDeviceTime" type="number" placeholder="留空 = 当前设备读数" />
+      </label>
+      <label>参考时钟读数(ms，留空=现在)
+        <input id="calRefTime" type="number" placeholder="留空 = 参考时钟现在" />
+      </label>
+      <label>备注 <input id="calNote" type="text" placeholder="可选" /></label>
+      <div class="cal-buttons">
+        <button id="calNowBtn" class="btn">即时校时</button>
+        <button id="calBackfillBtn" class="btn accent">补一条迟到校时（向前 20 秒）</button>
+      </div>
+    </div>
+    <div id="calList" class="cal-list"></div>
+  </section>
+
+  <!-- 计算器 / 入库端控制 -->
+  <section class="panel controls">
+    <div class="control-block">
+      <h2>③ 校时计算器</h2>
+      <div class="row">
+        <button id="calcPauseBtn" class="btn">暂停计算器</button>
+        <button id="calcResumeBtn" class="btn" disabled>恢复计算器</button>
+        <span id="calcState" class="state-pill"></span>
+      </div>
+      <p class="hint">暂停期间新数据与新校时继续落接收服务，恢复后补算；在途旧作业晚到时由版本栅栏拒绝。</p>
+      <div id="jobList" class="job-list"></div>
+    </div>
+    <div class="control-block">
+      <h2>④ 入库端（只发布已确认版本）</h2>
+      <div class="row">
+        <label class="switch">
+          <input id="autoConfirm" type="checkbox" checked />
+          <span>自动确认候选版本</span>
+        </label>
+        <button id="confirmBtn" class="btn accent">手动确认当前候选</button>
+      </div>
+      <div id="publishState" class="publish-state"></div>
+    </div>
+  </section>
+
+  <!-- 时间轴对比 -->
+  <section class="panel">
+    <h2>⑤ 校正时间轴（候选 vs 已发布；到达顺序不参与排序）</h2>
+    <div class="tabs">
+      <button class="tab active" data-tab="candidate">候选版（计算器最新）</button>
+      <button class="tab" data-tab="published">已发布版（入库端确认）</button>
+    </div>
+    <div id="boundaryBox" class="boundary-box"></div>
+    <div class="table-wrap">
+      <table id="timelineTable">
+        <thead>
+          <tr>
+            <th>校正序</th><th>到达序</th><th>序差</th><th>设备/boot</th><th>seq</th>
+            <th>设备原始时间</th><th>校正时间(参考时钟)</th><th>不确定区间半宽</th>
+            <th>状态</th><th>依据校时</th><th>隐藏真值误差</th><th>跨午夜</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 原始记录 -->
+  <section class="panel">
+    <h2>⑥ 接收服务原始记录（只追加、不可变；arrival_seq 仅审计用）</h2>
+    <div class="table-wrap">
+      <table id="rawTable">
+        <thead>
+          <tr>
+            <th>到达序</th><th>记录id</th><th>设备/boot</th><th>seq</th>
+            <th>设备时间</th><th>到达时间</th><th>隐藏真值时间</th><th>真值-到达差</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 审计 -->
+  <section class="panel">
+    <h2>⑦ 审计日志（版本、策略、栅栏拒绝全部留痕）</h2>
+    <div id="auditLog" class="audit-log"></div>
+  </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
